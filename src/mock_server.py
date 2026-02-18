@@ -12,12 +12,27 @@ Runs on http://127.0.0.1:8000/diagnose
 """
 
 import random
+from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-app = FastAPI(title="Mock Diagnostic Server")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("\n🏥 Mock Diagnostic Server (FastAPI)")
+    print("=" * 40)
+    print("Endpoint: /diagnose")
+    print("Method:   POST")
+    print('Body:     {"symptoms": "..."}')
+    print("Docs:     /docs")
+    print("=" * 40)
+    print("\nPress Ctrl+C to stop\n")
+    yield
+
+
+app = FastAPI(title="Mock Diagnostic Server", lifespan=lifespan)
 
 ICD_CODES = [
     "A00.13",
@@ -101,15 +116,3 @@ async def handle_diagnose(request: DiagnoseRequest) -> DiagnoseResponse:
         )
 
     return DiagnoseResponse(diagnoses=diagnoses)
-
-
-@app.on_event("startup")
-async def startup_event():
-    print("\n🏥 Mock Diagnostic Server (FastAPI)")
-    print("=" * 40)
-    print("Endpoint: http://0.0.0.0:8000/diagnose")
-    print("Method:   POST")
-    print('Body:     {"symptoms": "..."}')
-    print("Docs:     http://0.0.0.0:8000/docs")
-    print("=" * 40)
-    print("\nPress Ctrl+C to stop\n")

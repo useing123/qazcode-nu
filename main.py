@@ -1,6 +1,5 @@
 import argparse
 import asyncio
-import csv
 import json
 import statistics
 import time
@@ -32,6 +31,7 @@ class EvaluationResult:
     ground_truth: str
     top_prediction: str
     top_3_predictions: list[str]
+    response_json: dict
 
 
 async def evaluate_single(
@@ -84,6 +84,7 @@ async def evaluate_single(
             ground_truth=ground_truth,
             top_prediction=top_prediction,
             top_3_predictions=top_3_predictions,
+            response_json=result,
         )
 
 
@@ -187,33 +188,23 @@ def compute_metrics(results: list[EvaluationResult]) -> dict:
     }
 
 
-def write_csv(results: list[EvaluationResult], output_path: Path):
-    """Write results to CSV file."""
-    with open(output_path, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(
-            [
-                "protocol_id",
-                "accuracy_at_1",
-                "recall_at_3",
-                "latency_s",
-                "ground_truth",
-                "top_prediction",
-                "top_3_predictions",
-            ]
-        )
+def write_jsonl(results: list[EvaluationResult], output_path: Path):
+    """Write results to JSONL file."""
+    with open(output_path, "w") as f:
         for r in results:
-            writer.writerow(
-                [
-                    r.protocol_id,
-                    r.accuracy_at_1,
-                    r.recall_at_3,
-                    f"{r.latency_s:.3f}",
-                    r.ground_truth,
-                    r.top_prediction,
-                    ";".join(r.top_3_predictions),
-                ]
-            )
+            line = {
+                "protocol_id": r.protocol_id,
+                "response": r.response_json,
+                "scores": {
+                    "accuracy_at_1": r.accuracy_at_1,
+                    "recall_at_3": r.recall_at_3,
+                    "latency_s": round(r.latency_s, 3),
+                    "ground_truth": r.ground_truth,
+                    "top_prediction": r.top_prediction,
+                    "top_3_predictions": r.top_3_predictions,
+                },
+            }
+            f.write(json.dumps(line, ensure_ascii=False) + "\n")
 
 
 def write_metrics_json(submission_name: str, metrics: dict, output_path: Path):
@@ -229,7 +220,7 @@ def write_metrics_json(submission_name: str, metrics: dict, output_path: Path):
 def display_summary(
     results: list[EvaluationResult],
     metrics: dict,
-    output_csv: Path,
+    output_jsonl: Path,
     output_json: Path,
     console: Console,
 ):
@@ -279,8 +270,8 @@ def display_summary(
     success_text = Text()
     success_text.append("✓ ", style="bold green")
     success_text.append("Results saved to:\n", style="white")
-    success_text.append(f"  CSV:  {output_csv}\n", style="bold cyan")
-    success_text.append(f"  JSON: {output_json}", style="bold cyan")
+    success_text.append(f"  JSONL:   {output_jsonl}\n", style="bold cyan")
+    success_text.append(f"  Metrics: {output_json}", style="bold cyan")
     console.print(Panel(success_text, border_style="green"))
 
 
@@ -352,13 +343,13 @@ Examples:
     )
 
     if results:
-        output_csv = args.output_dir / f"{args.name}.csv"
-        output_json = args.output_dir / f"{args.name}.json"
+        output_jsonl = args.output_dir / f"{args.name}.jsonl"
+        output_json = args.output_dir / f"{args.name}_metrics.json"
 
-        write_csv(results, output_csv)
+        write_jsonl(results, output_jsonl)
         metrics = compute_metrics(results)
         write_metrics_json(args.name, metrics, output_json)
-        display_summary(results, metrics, output_csv, output_json, console)
+        display_summary(results, metrics, output_jsonl, output_json, console)
 
     return 0
 
