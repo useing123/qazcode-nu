@@ -75,7 +75,7 @@ Copy
 
 ### How to Submit
 
-1. Push your Docker image to Docker Hub or provide a Git repository with `Dockerfile`
+1. Provide a Git repository with `Dockerfile`
 2. Submit the link via [submission form] #######TODO add google form
 3. We will pull, build, and run your container on the private holdout set
 ---
