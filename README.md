@@ -46,8 +46,8 @@ Working demo interface: user inputs symptoms → system returns diagnoses with I
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/dair-mus/hack-nu.git
-cd hack-nu
+git clone https://github.com/dair-mus/qazcode-nu.git
+cd qazcode-nu
 ```
 
 ### 2. Set up the environment
